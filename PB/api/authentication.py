@@ -10,7 +10,7 @@ class EmployeeIDAuthentication(authentication.BaseAuthentication):
             return None
 
         try:
-            user = User.objects.get(username=employee_id)
+            user = User.objects.get(employee_id=employee_id)
             if user.profile.contact_number != contact_number:
                 raise exceptions.AuthenticationFailed('Incorrect contact number.')
         except User.DoesNotExist:

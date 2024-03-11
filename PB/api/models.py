@@ -9,6 +9,7 @@ class Employee(models.Model):
     )
 
     employee_id = models.CharField(max_length=15, unique=True)
+    name = models.TextField(default='nill')
     role = models.CharField(max_length=2, choices=EMPLOYEE_ROLES, default='FR')
     email = models.EmailField(unique=True)
     contact_number = models.CharField(max_length=15)
