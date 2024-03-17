@@ -15,8 +15,8 @@ class Employee(models.Model):
         return self.employee_id
 
 class EmployeeStatus(models.Model):
-    employee = models.OneToOneField(Employee, on_delete=models.CASCADE)
+    employee_id = models.CharField(max_length=255, unique=True)
     is_online = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"{self.employee.employee_id} Status"
+        return self.employee_id

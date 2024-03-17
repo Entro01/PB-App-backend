@@ -29,16 +29,20 @@ class EmployeeStatusView(View):
     def get(self, request, *args, **kwargs):
         employee_id = request.GET.get('employee_id')
         try:
-            status = EmployeeStatus.objects.get(employee__employee_id=employee_id).is_online
+            status = EmployeeStatus.objects.get(employee_id=employee_id).is_online
             return JsonResponse({'status': status})
         except EmployeeStatus.DoesNotExist:
             return JsonResponse({'status': 'error', 'message': 'Employee status not found'})
+    
+    def get(self, request, *args, **kwargs):
+        # Render the login form
+        return render(request, 'registration/status.html')
 
     def post(self, request, *args, **kwargs):
         employee_id = request.POST.get('employee_id')
         is_online = request.POST.get('is_online') == '1'
         try:
-            status = EmployeeStatus.objects.get(employee__employee_id=employee_id)
+            status = EmployeeStatus.objects.get(employee_id=employee_id)
             status.is_online = is_online
             status.save()
             return JsonResponse({'status': 'success'})
