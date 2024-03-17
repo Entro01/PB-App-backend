@@ -1,9 +1,8 @@
+# employees/urls.py
 from django.urls import path
-from .views import EmployeeLoginView, EmployeeStatusUpdateView, EmployeeStatusListView, EmployeeCreateView
+from .views import LoginView, EmployeeStatusView
 
 urlpatterns = [
-    path('login/', EmployeeLoginView.as_view(), name='employee-login'),
-    path('status/update/', EmployeeStatusUpdateView.as_view(), name='employee-status-update'),
-    path('status/', EmployeeStatusListView.as_view(), name='employee-status-list'),
-    path('employees/create/', EmployeeCreateView.as_view(), name='employee-create'),
+    path('login/', LoginView.as_view(), name='login'),
+    path('employee-status/', EmployeeStatusView.as_view(), name='employee_status'),
 ]

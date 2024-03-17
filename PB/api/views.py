@@ -1,48 +1,46 @@
-from rest_framework import generics, permissions
+# employees/views.py
+from django.http import JsonResponse
+from django.views import View
+from django.contrib.auth import authenticate, login
+from django.contrib.auth.models import User
 from .models import Employee, EmployeeStatus
-from .serializers import EmployeeSerializer, EmployeeStatusSerializer, LoginSerializer
-from .authentication import EmployeeIDAuthentication
-from rest_framework.permissions import AllowAny
-from rest_framework.authentication import SessionAuthentication, BasicAuthentication
-from rest_framework import serializers
+from django.shortcuts import render
 
+class LoginView(View):
+    def get(self, request, *args, **kwargs):
+        # Render the login form
+        return render(request, 'registration/login.html')
 
-class EmployeeLoginView(generics.CreateAPIView):
-    queryset = Employee.objects.all()
-    serializer_class = LoginSerializer
-    authentication_classes = [EmployeeIDAuthentication]
-    permission_classes = [permissions.AllowAny]
-
-    def perform_create(self, serializer):
-        employee = serializer.save()
-        print(f"Employee {employee.employee_id} logged in.")
-
-class EmployeeStatusUpdateView(generics.UpdateAPIView):
-    queryset = EmployeeStatus.objects.all()
-    serializer_class = EmployeeStatusSerializer
-    authentication_classes = []
-    permission_classes = [AllowAny]
-
-    def get_object(self):
-        # Extract employee_id from the request data
-        employee_id = self.request.data.get('employee_id')
-        if not employee_id:
-            raise serializers.ValidationError("employee_id is required.")
-    
-        # Retrieve the EmployeeStatus object based on employee_id
+    def post(self, request, *args, **kwargs):
+        employee_id = request.POST.get('employee_id')
+        password = request.POST.get('password')
         try:
-            return EmployeeStatus.objects.get(employee_id=employee_id)
+            employee = Employee.objects.get(employee_id=employee_id)
+            if employee.contact_number == password:
+                user = User.objects.create_user(username=employee_id, password=password)
+                login(request, user)
+                return JsonResponse({'status': 'success', 'role': employee.role})
+            else:
+                return JsonResponse({'status': 'error', 'message': 'Invalid credentials'})
+        except Employee.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'Employee not found'})
+
+class EmployeeStatusView(View):
+    def get(self, request, *args, **kwargs):
+        employee_id = request.GET.get('employee_id')
+        try:
+            status = EmployeeStatus.objects.get(employee__employee_id=employee_id).is_online
+            return JsonResponse({'status': status})
         except EmployeeStatus.DoesNotExist:
-            raise serializers.ValidationError("Employee with the given employee_id does not exist.")
+            return JsonResponse({'status': 'error', 'message': 'Employee status not found'})
 
-class EmployeeStatusListView(generics.ListAPIView):
-    queryset = EmployeeStatus.objects.all()
-    serializer_class = EmployeeStatusSerializer
-    
-    authentication_classes = [SessionAuthentication, BasicAuthentication]
-    permission_classes = [AllowAny]
-
-class EmployeeCreateView(generics.CreateAPIView):
-    queryset = Employee.objects.all()
-    serializer_class = EmployeeSerializer
-    permission_classes = [AllowAny]
+    def post(self, request, *args, **kwargs):
+        employee_id = request.POST.get('employee_id')
+        is_online = request.POST.get('is_online') == '1'
+        try:
+            status = EmployeeStatus.objects.get(employee__employee_id=employee_id)
+            status.is_online = is_online
+            status.save()
+            return JsonResponse({'status': 'success'})
+        except EmployeeStatus.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'Employee status not found'})
