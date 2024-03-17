@@ -17,7 +17,7 @@ class LoginView(View):
         try:
             employee = Employee.objects.get(employee_id=employee_id)
             if employee.contact_number == password:
-                user = User.objects.create_user(username=employee_id, password=password)
+                user = authenticate(request, username=employee_id, password=password)
                 login(request, user)
                 return JsonResponse({'status': 'success', 'role': employee.role})
             else:
@@ -27,15 +27,20 @@ class LoginView(View):
 
 class EmployeeStatusView(View):
     def get(self, request, *args, **kwargs):
-        employee_id = request.GET.get('employee_id')
+        # Render the HTML form for updating the status
+        return render(request, 'registration/status.html')
+
+    def post(self, request, *args, **kwargs):
+        employee_id = request.POST.get('employee_id')
         try:
             status = EmployeeStatus.objects.get(employee_id=employee_id).is_online
             return JsonResponse({'status': status})
         except EmployeeStatus.DoesNotExist:
             return JsonResponse({'status': 'error', 'message': 'Employee status not found'})
-    
+
+class EmployeeStatusUpdateView(View):
     def get(self, request, *args, **kwargs):
-        # Render the login form
+        # Render the HTML form for updating the status
         return render(request, 'registration/status.html')
 
     def post(self, request, *args, **kwargs):
