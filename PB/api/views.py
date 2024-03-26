@@ -55,13 +55,16 @@ class EmployeeCreateView(APIView):
 class EmployeeRemoveView(APIView):
     def delete(self, request):
         try:
-            employee = request.GET.get('employee', None)
-            target = Employee.objects.get(employee_id=employee).employee_id
-            target.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
+            employee_id = request.GET.get('employee', None)
+            if employee_id:
+                target = Employee.objects.get(employee_id=employee_id)
+                target.delete()
+                return Response(status=status.HTTP_204_NO_CONTENT)
+            else:
+                return Response({'error': 'Employee ID is required'}, status=status.HTTP_400_BAD_REQUEST)
         except Employee.DoesNotExist:
             return Response({'error': 'Employee not found'}, status=status.HTTP_404_NOT_FOUND)
-
+        
 class PrintEmployeeDetailsView(APIView):
    def get(self, request):
         role = request.GET.get('role', None)
