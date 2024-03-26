@@ -24,7 +24,7 @@ class LoginView(APIView):
 
 class EmployeeStatusView(APIView):
     def get(self, request):
-        employee_id = request.data.get('employee_id')
+        employee_id = request.GET.get('employee_id', None)
         try:
             status_value = Employee.objects.get(employee_id=employee_id).is_online
             return Response({'status': status_value}, status=status.HTTP_200_OK)
@@ -34,7 +34,7 @@ class EmployeeStatusView(APIView):
 class EmployeeStatusUpdateView(APIView):
     def post(self, request):
         employee_id = request.data.get('employee_id')
-        is_online = request.data.get('is_online') == '1'
+        is_online = request.data.get('is_online') == True
         try:
             status_obj = Employee.objects.get(employee_id=employee_id)
             status_obj.is_online = is_online
@@ -65,7 +65,7 @@ class EmployeeRemoveView(APIView):
 class PrintEmployeeDetailsView(APIView):
    def get(self, request):
         role = request.GET.get('role', None)
-        employee = Employee.objects.filter(employee__role=role)
+        employee = Employee.objects.filter(role=role)
         response_data = []
         for status in employee:
             response_data.append({

@@ -9,8 +9,8 @@ class Employee(models.Model):
     ]
     employee_id = models.CharField(max_length=255, unique=True)
     password = models.CharField(max_length=255, default="1234")
-    name = models.CharField(max_length=255)
-    email = models.CharField(max_length=255) 
+    name = models.CharField(max_length=255, default="null")
+    email = models.CharField(max_length=255, default="null") 
     role = models.CharField(max_length=255, choices=ROLES)
     contact_number = models.CharField(max_length=255)
     is_online = models.BooleanField(default=False)
