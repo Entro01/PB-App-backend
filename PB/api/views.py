@@ -1,55 +1,79 @@
-# employees/views.py
-from django.http import JsonResponse
-from django.views import View
+# employees/views.pys import APIView
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
 from django.contrib.auth import authenticate, login
-from django.contrib.auth.models import User
 from .models import Employee, EmployeeStatus
-from django.shortcuts import render
+from .serializers import EmployeeSerializer, EmployeeStatusSerializer
 
-class LoginView(View):
-    def get(self, request, *args, **kwargs):
-        # Render the login form
-        return render(request, 'registration/login.html')
-
-    def post(self, request, *args, **kwargs):
-        employee_id = request.POST.get('employee_id')
-        password = request.POST.get('password')
+class LoginView(APIView):
+    def post(self, request):
+        employee_id = request.data.get('employee_id')
+        password = request.data.get('password')
         try:
-            employee = Employee.objects.get(employee_id=employee_id)
-            if employee.contact_number == password:
-                user = authenticate(request, username=employee_id, password=password)
+            # Attempt to authenticate the user
+            user = authenticate(request, username=employee_id, password=password)
+            employee = Employee.objects.get(employee_id=employee_id) 
+            if user is not None and employee.contact_number == password:
+                # User is authenticated, log them in
                 login(request, user)
-                return JsonResponse({'status': 'success', 'role': employee.role})
+                # Retrieve the employee object to return additional information
+                serializer = EmployeeSerializer(employee)
+                return Response({'status': 'success', 'role': employee.role}, status=status.HTTP_200_OK)
             else:
-                return JsonResponse({'status': 'error', 'message': 'Invalid credentials'})
+                # Authentication failed
+                return Response({'status': 'error', 'message': 'Invalid credentials'}, status=status.HTTP_400_BAD_REQUEST)
         except Employee.DoesNotExist:
-            return JsonResponse({'status': 'error', 'message': 'Employee not found'})
+            return Response({'status': 'error', 'message': 'Employee not found'}, status=status.HTTP_404_NOT_FOUND)
 
-class EmployeeStatusView(View):
-    def get(self, request, *args, **kwargs):
-        # Render the HTML form for updating the status
-        return render(request, 'registration/status.html')
-
-    def post(self, request, *args, **kwargs):
-        employee_id = request.POST.get('employee_id')
+class EmployeeStatusView(APIView):
+    def get(self, request):
+        employee_id = request.query_params.get('employee_id')
         try:
-            status = EmployeeStatus.objects.get(employee_id=employee_id).is_online
-            return JsonResponse({'status': status})
+            status_value = EmployeeStatus.objects.get(employee_id=employee_id).is_online
+            return Response({'status': status_value}, status=status.HTTP_200_OK)
         except EmployeeStatus.DoesNotExist:
-            return JsonResponse({'status': 'error', 'message': 'Employee status not found'})
-
-class EmployeeStatusUpdateView(View):
-    def get(self, request, *args, **kwargs):
-        # Render the HTML form for updating the status
-        return render(request, 'registration/status.html')
-
-    def post(self, request, *args, **kwargs):
-        employee_id = request.POST.get('employee_id')
-        is_online = request.POST.get('is_online') == '1'
+            return Response({'status': 'error', 'message': 'Employee status not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+class EmployeeStatusUpdateView(APIView):
+    def post(self, request):
+        employee_id = request.data.get('employee_id')
+        is_online = request.data.get('is_online') == '1'
         try:
             status = EmployeeStatus.objects.get(employee_id=employee_id)
             status.is_online = is_online
             status.save()
-            return JsonResponse({'status': 'success'})
+            serializer = EmployeeStatusSerializer(status)
+            return Response({'status': 'success'}, status=status.HTTP_200_OK)
         except EmployeeStatus.DoesNotExist:
-            return JsonResponse({'status': 'error', 'message': 'Employee status not found'})
+            return Response({'status': 'error', 'message': 'Employee status not found'}, status=status.HTTP_404_NOT_FOUND)
+
+class EmployeeCreateView(APIView):
+    def post(self, request):
+        serializer = EmployeeSerializer(data=request.data)
+        if serializer.is_valid():
+            employee = serializer.save()
+            # Create a corresponding EmployeeStatus instance
+            EmployeeStatus.objects.create(employee_id=employee.employee_id, is_online=False)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+class PrintEmployeeStatusesView(APIView):
+    def get(self, request):
+        employee_statuses = EmployeeStatus.objects.all()
+        employee = Employee.objects.all()
+        response_data = []
+        for status in employee:
+            response_data.append({
+                "id": status.id,
+                "employee_id": status.employee_id,
+                "role": status.role,
+                "password": status.contact_number
+            })
+        for status in employee_statuses:
+            response_data.append({
+                "id": status.id,
+                "employee_id": status.employee_id,
+                "is_online": status.is_online
+            })
+        return Response(response_data)
