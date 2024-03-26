@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from .models import Employee
 from .serializers import EmployeeSerializer
+from django.shortcuts import get_object_or_404
 
 class LoginView(APIView):
     def post(self, request):
@@ -51,8 +52,19 @@ class EmployeeCreateView(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
+class EmployeeRemoveView(APIView):
+    def delete(self, request):
+        try:
+            employee = request.GET.get('employee', None)
+            target = Employee.objects.get(employee_id=employee).employee_id
+            target.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except Employee.DoesNotExist:
+            return Response({'error': 'Employee not found'}, status=status.HTTP_404_NOT_FOUND)
+
 class PrintEmployeeDetailsView(APIView):
-   def get(self, role):
+   def get(self, request):
+        role = request.GET.get('role', None)
         employee = Employee.objects.filter(employee__role=role)
         response_data = []
         for status in employee:
