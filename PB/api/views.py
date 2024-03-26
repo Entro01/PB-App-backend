@@ -12,12 +12,8 @@ class LoginView(APIView):
         password = request.data.get('password')
         try:
             # Attempt to authenticate the user
-            user = authenticate(request, username=employee_id, password=password)
             employee = Employee.objects.get(employee_id=employee_id) 
-            if user is not None and employee.contact_number == password:
-                # User is authenticated, log them in
-                login(request, user)
-                # Retrieve the employee object to return additional information
+            if employee.contact_number == password:
                 serializer = EmployeeSerializer(employee)
                 return Response({'status': 'success', 'role': employee.role}, status=status.HTTP_200_OK)
             else:
@@ -28,7 +24,7 @@ class LoginView(APIView):
 
 class EmployeeStatusView(APIView):
     def get(self, request):
-        employee_id = request.query_params.get('employee_id')
+        employee_id = request.data.get('employee_id')
         try:
             status_value = EmployeeStatus.objects.get(employee_id=employee_id).is_online
             return Response({'status': status_value}, status=status.HTTP_200_OK)
@@ -40,9 +36,9 @@ class EmployeeStatusUpdateView(APIView):
         employee_id = request.data.get('employee_id')
         is_online = request.data.get('is_online') == '1'
         try:
-            status = EmployeeStatus.objects.get(employee_id=employee_id)
-            status.is_online = is_online
-            status.save()
+            status_obj = EmployeeStatus.objects.get(employee_id=employee_id)
+            status_obj.is_online = is_online
+            status_obj.save()
             serializer = EmployeeStatusSerializer(status)
             return Response({'status': 'success'}, status=status.HTTP_200_OK)
         except EmployeeStatus.DoesNotExist:
