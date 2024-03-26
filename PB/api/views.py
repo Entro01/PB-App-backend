@@ -64,10 +64,23 @@ class EmployeeRemoveView(APIView):
             return Response({'error': 'Employee not found'}, status=status.HTTP_404_NOT_FOUND)
         
 class PrintEmployeeDetailsView(APIView):
-   def get(self, request):
+    def get(self, request):
         role = request.GET.get('role', None)
-        employee = Employee.objects.filter(role=role)
         response_data = []
+
+        roles = ('Admin', 'Project Coordinator', 'Freelancer', 'Accounting')
+
+        if role is None:
+            employee = Employee.objects.all()
+        elif role in roles:
+            employee = Employee.objects.filter(role=role)
+        else:
+            try:
+                employee_id = role
+                employee = Employee.objects.filter(employee_id=employee_id)
+            except ValueError:
+                return Response({'status': 'error', 'message': 'Invalid role or employee ID'}, status=400)
+
         for status in employee:
             response_data.append({
                 "id": status.id,
@@ -77,4 +90,5 @@ class PrintEmployeeDetailsView(APIView):
                 "contact_number": status.contact_number,
                 "status": status.is_online
             })
+
         return Response(response_data)
