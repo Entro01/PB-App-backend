@@ -11,13 +11,11 @@ class LoginView(APIView):
         employee_id = request.data.get('employee_id')
         password = request.data.get('password')
         try:
-            # Attempt to authenticate the user
             employee = Employee.objects.get(employee_id=employee_id) 
             if employee.contact_number == password:
                 serializer = EmployeeSerializer(employee)
                 return Response({'status': 'success', 'role': employee.role}, status=status.HTTP_200_OK)
             else:
-                # Authentication failed
                 return Response({'status': 'error', 'message': 'Invalid credentials'}, status=status.HTTP_400_BAD_REQUEST)
         except Employee.DoesNotExist:
             return Response({'status': 'error', 'message': 'Employee not found'}, status=status.HTTP_404_NOT_FOUND)
