@@ -77,7 +77,6 @@ class PrintEmployeeDetailsView(APIView):
                 "name": status.name,
                 "email": status.email,
                 "contact_number": status.contact_number,
-                "password": status.password,
                 "status": status.is_online
             })
         return Response(response_data)
