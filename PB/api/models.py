@@ -8,15 +8,17 @@ class Employee(models.Model):
         ('Accounting', 'Accounting'),
     ]
     employee_id = models.CharField(max_length=255, unique=True)
+    password = models.CharField(max_length=255, default="1234")
+    name = models.CharField(max_length=255)
+    email = models.CharField(max_length=255) 
     role = models.CharField(max_length=255, choices=ROLES)
     contact_number = models.CharField(max_length=255)
-
-    def __str__(self):
-        return self.employee_id
-
-class EmployeeStatus(models.Model):
-    employee_id = models.CharField(max_length=255, unique=True)
     is_online = models.BooleanField(default=False)
+
+    def save(self, *args, **kwargs):
+        # Set the password to the contact number before saving
+        self.password = self.contact_number
+        super(Employee, self).save(*args, **kwargs)
 
     def __str__(self):
         return self.employee_id

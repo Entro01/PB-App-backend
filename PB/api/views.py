@@ -2,9 +2,8 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from django.contrib.auth import authenticate, login
-from .models import Employee, EmployeeStatus
-from .serializers import EmployeeSerializer, EmployeeStatusSerializer
+from .models import Employee
+from .serializers import EmployeeSerializer
 
 class LoginView(APIView):
     def post(self, request):
@@ -26,9 +25,9 @@ class EmployeeStatusView(APIView):
     def get(self, request):
         employee_id = request.data.get('employee_id')
         try:
-            status_value = EmployeeStatus.objects.get(employee_id=employee_id).is_online
+            status_value = Employee.objects.get(employee_id=employee_id).is_online
             return Response({'status': status_value}, status=status.HTTP_200_OK)
-        except EmployeeStatus.DoesNotExist:
+        except Employee.DoesNotExist:
             return Response({'status': 'error', 'message': 'Employee status not found'}, status=status.HTTP_404_NOT_FOUND)
         
 class EmployeeStatusUpdateView(APIView):
@@ -36,40 +35,34 @@ class EmployeeStatusUpdateView(APIView):
         employee_id = request.data.get('employee_id')
         is_online = request.data.get('is_online') == '1'
         try:
-            status_obj = EmployeeStatus.objects.get(employee_id=employee_id)
+            status_obj = Employee.objects.get(employee_id=employee_id)
             status_obj.is_online = is_online
             status_obj.save()
-            serializer = EmployeeStatusSerializer(status)
+            serializer = EmployeeSerializer(status)
             return Response({'status': 'success'}, status=status.HTTP_200_OK)
-        except EmployeeStatus.DoesNotExist:
+        except Employee.DoesNotExist:
             return Response({'status': 'error', 'message': 'Employee status not found'}, status=status.HTTP_404_NOT_FOUND)
 
 class EmployeeCreateView(APIView):
     def post(self, request):
         serializer = EmployeeSerializer(data=request.data)
         if serializer.is_valid():
-            employee = serializer.save()
-            # Create a corresponding EmployeeStatus instance
-            EmployeeStatus.objects.create(employee_id=employee.employee_id, is_online=False)
+            serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
-class PrintEmployeeStatusesView(APIView):
-    def get(self, request):
-        employee_statuses = EmployeeStatus.objects.all()
-        employee = Employee.objects.all()
+class PrintEmployeeDetailsView(APIView):
+   def get(self, role):
+        employee = Employee.objects.filter(employee__role=role)
         response_data = []
         for status in employee:
             response_data.append({
                 "id": status.id,
                 "employee_id": status.employee_id,
-                "role": status.role,
-                "password": status.contact_number
-            })
-        for status in employee_statuses:
-            response_data.append({
-                "id": status.id,
-                "employee_id": status.employee_id,
-                "is_online": status.is_online
+                "name": status.name,
+                "email": status.email,
+                "contact_number": status.contact_number,
+                "password": status.password,
+                "status": status.is_online
             })
         return Response(response_data)
