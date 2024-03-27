@@ -147,3 +147,48 @@ class PrintEnquiryDetailsView(APIView):
             return Response({'status': 'error', 'message': 'Invalid role'}, status=status.HTTP_404_NOT_FOUND)
 
         return Response({'enquiries': list(enquiries.values())}, status=status.HTTP_200_OK)
+
+class UpdateEnquiryStatusView(APIView):
+    def post(self, request):
+        enquiry_id = request.query_params.get('enquiry_id', None)
+        target_status = request.query_params.get('target_status', None)
+        
+        if not enquiry_id or not target_status:
+            return Response({'status': 'error', 'message': 'Enquiry ID and target status are required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        employee_id = request.data.get('employee_id')
+        if not employee_id:
+            return Response({'status': 'error', 'message': 'Employee ID is required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            enquiry = Enquiry.objects.get(id=enquiry_id)
+        except Enquiry.DoesNotExist:
+            return Response({'status': 'error', 'message': 'Enquiry not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        try:
+            employee = Employee.objects.get(employee_id=employee_id)
+        except Employee.DoesNotExist:
+            return Response({'status': 'error', 'message': 'Employee not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        if enquiry.status == 0 and target_status == 1:
+            if employee.role != 'Project Coordinator':
+                return Response({'status': 'error', 'message': 'Employee is not a Project Coordinator'}, status=status.HTTP_400_BAD_REQUEST)
+            enquiry.coordinator = employee_id
+            enquiry.status = 1
+        elif enquiry.status == 1 and target_status == 0:
+            enquiry.coordinator = None
+            enquiry.status = 0
+        elif enquiry.status == 1 and target_status == 2:
+            if employee.role != 'Freelancer':
+                return Response({'status': 'error', 'message': 'Employee is not a Freelancer'}, status=status.HTTP_400_BAD_REQUEST)
+            enquiry.freelancer = employee_id
+            enquiry.status = 2
+        elif enquiry.status == 1 and target_status == 3:
+            enquiry.status = 3
+        elif enquiry.status == 3 and target_status == 4:
+            enquiry.status = 4
+        else:
+            return Response({'status': 'error', 'message': 'Invalid status transition'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        enquiry.save()
+        return Response({'status': 'success'}, status=status.HTTP_200_OK)
