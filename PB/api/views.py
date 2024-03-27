@@ -65,22 +65,21 @@ class EmployeeRemoveView(APIView):
         
 class PrintEmployeeDetailsView(APIView):
     def get(self, request):
-        role = request.GET.get('role', None)
+        arg = request.GET.get('arg', None)
         response_data = []
 
         roles = ('Admin', 'Project Coordinator', 'Freelancer', 'Accounting')
 
-        if role is None:
+        if arg is None:
             employee = Employee.objects.all()
-        elif role in roles:
-            employee = Employee.objects.filter(role=role)
+        elif arg in roles:
+            employee = Employee.objects.filter(role=arg)
         else:
             try:
-                employee_id = role
+                employee_id = arg
                 employee = Employee.objects.filter(employee_id=employee_id)
             except ValueError:
                 return Response({'status': 'error', 'message': 'Invalid role or employee ID'}, status=400)
-
         for status in employee:
             response_data.append({
                 "id": status.id,
