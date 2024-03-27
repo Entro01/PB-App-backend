@@ -2,9 +2,8 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .models import Employee
-from .serializers import EmployeeSerializer
-from django.shortcuts import get_object_or_404
+from .models import Employee, Enquiry
+from .serializers import EmployeeSerializer, EnquirySerializer
 
 class LoginView(APIView):
     def post(self, request):
@@ -13,7 +12,6 @@ class LoginView(APIView):
         try:
             employee = Employee.objects.get(employee_id=employee_id) 
             if employee.contact_number == password:
-                serializer = EmployeeSerializer(employee)
                 return Response({'status': 'success', 'role': employee.role}, status=status.HTTP_200_OK)
             else:
                 return Response({'status': 'error', 'message': 'Invalid credentials'}, status=status.HTTP_400_BAD_REQUEST)
@@ -37,7 +35,6 @@ class EmployeeStatusUpdateView(APIView):
             status_obj = Employee.objects.get(employee_id=employee_id)
             status_obj.is_online = is_online
             status_obj.save()
-            serializer = EmployeeSerializer(status)
             return Response({'status': 'success'}, status=status.HTTP_200_OK)
         except Employee.DoesNotExist:
             return Response({'status': 'error', 'message': 'Employee status not found'}, status=status.HTTP_404_NOT_FOUND)
@@ -91,3 +88,62 @@ class PrintEmployeeDetailsView(APIView):
             })
 
         return Response(response_data)
+    
+class EnquiryCreateView(APIView):
+    def post(self, request):
+        serializer = EnquirySerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class PrintEnquiryDetailsView(APIView):
+    def get(self, request):
+        employee_id = request.GET.get('arg1', None)
+        status_val = request.GET.get('arg2', None)
+
+        if status_val is not None:
+            try:
+                status_val = int(status_val)
+                if status_val < 0 or status_val > 4:
+                    return Response({'status': 'error', 'message': 'Invalid status'}, status=status.HTTP_400_BAD_REQUEST)
+            except ValueError:
+                return Response({'status': 'error', 'message': 'Invalid status'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not employee_id:
+            return Response({'status': 'error', 'message': 'Invalid arguments'}, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            employee = Employee.objects.get(employee_id=employee_id)
+        except Employee.DoesNotExist:
+            return Response({'status': 'error', 'message': 'Employee not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        role_mapping = {
+            'AM': 'Admin',
+            'FR': 'Freelancer',
+            'PC': 'Project Coordinator'
+        }
+        role = role_mapping.get(employee_id.split('-')[1], None)
+
+        if not role:
+            return Response({'status': 'error', 'message': 'Invalid employee ID format'}, status=status.HTTP_404_NOT_FOUND)
+
+        if role == 'Admin':
+            if status_val:
+                enquiries = Enquiry.objects.filter(status=status_val)
+            else:
+                enquiries = Enquiry.objects.all()
+        elif role == 'Project Coordinator':
+            if status_val:
+                enquiries = Enquiry.objects.filter(coordinator=employee, status=status_val)
+            else:
+                enquiries = Enquiry.objects.filter(coordinator=employee)
+        elif role == 'Freelancer':
+            if status:
+                enquiries = Enquiry.objects.filter(freelancer=employee, status=status_val)
+            else:
+                enquiries = Enquiry.objects.filter(freelancer=employee)
+        else:
+            return Response({'status': 'error', 'message': 'Invalid role'}, status=status.HTTP_404_NOT_FOUND)
+
+        return Response({'enquiries': list(enquiries.values())}, status=status.HTTP_200_OK)
