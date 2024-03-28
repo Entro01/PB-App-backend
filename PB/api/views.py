@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from .models import Employee, Enquiry
 from .serializers import EmployeeSerializer, EnquirySerializer
+from django.core.validators import RegexValidator
 
 class LoginView(APIView):
     def post(self, request):
@@ -54,7 +55,7 @@ class EmployeeRemoveView(APIView):
             if employee_id:
                 target = Employee.objects.get(employee_id=employee_id)
                 target.delete()
-                return Response(status=status.HTTP_204_NO_CONTENT)
+                return Response(status=status.HTTP_200_OK)
             else:
                 return Response({'error': 'Employee ID is required'}, status=status.HTTP_400_BAD_REQUEST)
         except Employee.DoesNotExist:
@@ -65,7 +66,7 @@ class PrintEmployeeDetailsView(APIView):
         arg = request.GET.get('arg', None)
         response_data = []
 
-        roles = ('Admin', 'Project Coordinator', 'Freelancer', 'Accounting')
+        roles = ('Admin', 'Coordinator', 'Freelancer', 'Accounting')
 
         if arg is None:
             employee = Employee.objects.all()
@@ -111,7 +112,7 @@ class PrintEnquiryDetailsView(APIView):
                 return Response({'status': 'error', 'message': 'Invalid status'}, status=status.HTTP_400_BAD_REQUEST)
 
         if not employee_id:
-            return Response({'status': 'error', 'message': 'Invalid arguments'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'status': 'error', 'message': 'EmployeeID is required'}, status=status.HTTP_404_NOT_FOUND)
 
         try:
             employee = Employee.objects.get(employee_id=employee_id)
@@ -121,7 +122,7 @@ class PrintEnquiryDetailsView(APIView):
         role_mapping = {
             'AM': 'Admin',
             'FR': 'Freelancer',
-            'PC': 'Project Coordinator'
+            'PC': 'Coordinator'
         }
         role = role_mapping.get(employee_id.split('-')[1], None)
 
@@ -133,7 +134,7 @@ class PrintEnquiryDetailsView(APIView):
                 enquiries = Enquiry.objects.filter(status=status_val)
             else:
                 enquiries = Enquiry.objects.all()
-        elif role == 'Project Coordinator':
+        elif role == 'Coordinator':
             if status_val:
                 enquiries = Enquiry.objects.filter(coordinator=employee, status=status_val)
             else:
@@ -171,7 +172,7 @@ class UpdateEnquiryStatusView(APIView):
             return Response({'status': 'error', 'message': 'Employee not found'}, status=status.HTTP_404_NOT_FOUND)
         
         if enquiry.status == 0 and target_status == 1:
-            if employee.role != 'Project Coordinator':
+            if employee.role != 'Coordinator':
                 return Response({'status': 'error', 'message': 'Employee is not a Project Coordinator'}, status=status.HTTP_400_BAD_REQUEST)
             enquiry.coordinator = employee_id
             enquiry.status = 1
