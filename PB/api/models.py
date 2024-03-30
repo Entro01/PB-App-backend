@@ -14,6 +14,7 @@ class Employee(models.Model):
     role = models.CharField(max_length=255, choices=ROLES, default = "Freelancer")
     contact_number = models.CharField(max_length=255)
     is_online = models.BooleanField(default=False)
+    spreadsheet = models.TextField(blank=False, null=False)
 
     def save(self, *args, **kwargs):
         if not self.pk:

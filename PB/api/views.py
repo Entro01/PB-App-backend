@@ -4,7 +4,6 @@ from rest_framework.response import Response
 from rest_framework import status
 from .models import Employee, Enquiry
 from .serializers import EmployeeSerializer, EnquirySerializer
-from django.core.validators import RegexValidator
 
 class LoginView(APIView):
     def post(self, request):
@@ -90,6 +89,15 @@ class PrintEmployeeDetailsView(APIView):
 
         return Response(response_data)
     
+class EmployeeSpreadsheetView(APIView):
+    def get(self, request):
+        employee_id = request.GET.get('employee_id', None)
+        try:
+            spreadhseet = Employee.objects.get(employee_id=employee_id).spreadsheet
+            return Response({'link': spreadhseet}, status=status.HTTP_200_OK)
+        except Employee.DoesNotExist:
+            return Response({'status': 'error', 'message': 'Employee spreadsheet not found'}, status=status.HTTP_404_NOT_FOUND)
+        
 class EnquiryCreateView(APIView):
     def post(self, request):
         serializer = EnquirySerializer(data=request.data)
@@ -147,7 +155,7 @@ class PrintEnquiryDetailsView(APIView):
         else:
             return Response({'status': 'error', 'message': 'Invalid role'}, status=status.HTTP_404_NOT_FOUND)
 
-        return Response({'enquiries': list(enquiries.values())}, status=status.HTTP_200_OK)
+        return Response(list(enquiries.values()), status=status.HTTP_200_OK)
 
 class UpdateEnquiryStatusView(APIView):
     def post(self, request):
