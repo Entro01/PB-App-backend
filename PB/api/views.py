@@ -159,8 +159,8 @@ class PrintEnquiryDetailsView(APIView):
 
 class UpdateEnquiryStatusView(APIView):
     def post(self, request):
-        enquiry_id = request.query_params.get('enquiry_id', None)
-        target_status = request.query_params.get('target_status', None)
+        enquiry_id = request.data.get('enquiry_id', None)
+        target_status = request.data.get('target_status', None)
         
         if not enquiry_id or not target_status:
             return Response({'status': 'error', 'message': 'Enquiry ID and target status are required'}, status=status.HTTP_400_BAD_REQUEST)
