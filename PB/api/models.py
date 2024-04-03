@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.postgres.fields import ArrayField
 
 class Employee(models.Model):
     ROLES = [
@@ -34,19 +35,33 @@ class Employee(models.Model):
     
 class Enquiry(models.Model):
     STATUS_CHOICES = [
-        (0, 'Unassigned'),
-        (1, 'Assigned to a PC but not accepted'),
-        (2, 'Assigned to a FR but not accepted'),
-        (3, 'Assigned to a FR and accepted'),
-        (4, 'Completed'),
+        ('NEW_INQUIRY', 'Not assigned to any coordinator'),
+        ('COORDINATOR_REQUESTED', 'Assigned to a PC but not accepted'),
+        ('FREELANCERS_REQUESTED', 'Assigned to a FR but not accepted by at least one fr'),
+        ('FREELANCERS_ACCEPTED', 'Assigned to a FR and accepted by at least one fr'),
+        ('FREELANCER_FINALIZED', 'Finalized with an fr'),
+        ('INQUIRY_RESOLVED', 'Resolved - Check resolve status')
     ]
 
+    RESOLVE_STATUS = [
+        ('TIME_ISSUES', 'Time Issues'),
+        ('DISTANCE_ISSUES', 'Distance Issues'),
+        ('PAYMENT_PENDING', 'Payment Pending'),
+        ('ORDER_COMPLETE', 'Order Complete'),
+        ('NO_RESPONSE', 'No Response'),
+        ('SERVICES_NOT_AVAILABLE', 'Services Not Available'),
+        ('RESOLVED', 'Resolved')
+    ]
+    
     name = models.CharField(max_length=255, blank=False, null=False)
     description = models.TextField(blank=False, null=False)
-    status = models.IntegerField(choices=STATUS_CHOICES, default=0)
+    status = models.CharField(choices=STATUS_CHOICES, default=0)
     coordinator = models.CharField(max_length=255, blank=True, null=True)
-    freelancer = models.CharField(max_length=255, blank=True, null=True)
-    repo_link = models.URLField(blank=True, null=True)
+    assigned_fr = models.CharField(max_length=255, blank=True, null=True), 
+    accepted_fr = models.CharField(max_length=255, blank=True, null=True), 
+    final_fr = models.CharField(max_length=255, blank=True, null=True)
+    resolve_status = models.CharField(choices=RESOLVE_STATUS)
+    wp_link = models.URLField(blank=True, null=True)
 
     def __str__(self):
         return self.name
