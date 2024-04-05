@@ -106,6 +106,25 @@ class EnquiryCreateView(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+STATUS_CHOICES = [
+        ('NEW_INQUIRY', 'Not assigned to any coordinator'),
+        ('COORDINATOR_REQUESTED', 'Assigned to a PC but not accepted'),
+        ('FREELANCERS_REQUESTED', 'Assigned to a FR but not accepted by at least one fr'),
+        ('FREELANCERS_ACCEPTED', 'Assigned to a FR and accepted by at least one fr'),
+        ('FREELANCER_FINALIZED', 'Finalized with an fr'),
+        ('INQUIRY_RESOLVED', 'Resolved - Check resolve status')
+    ]
+
+RESOLVE_TAGS = [
+        ('TIME_ISSUES', 'Time Issues'),
+        ('DISTANCE_ISSUES', 'Distance Issues'),
+        ('PAYMENT_PENDING', 'Payment Pending'),
+        ('ORDER_COMPLETE', 'Order Complete'),
+        ('NO_RESPONSE', 'No Response'),
+        ('SERVICES_NOT_AVAILABLE', 'Services Not Available'),
+        ('RESOLVED', 'Resolved')
+    ]
+
 class PrintEnquiryDetailsView(APIView):
     def get(self, request):
         employee_id = request.GET.get('arg1', None)
