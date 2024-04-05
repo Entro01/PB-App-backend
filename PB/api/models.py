@@ -1,5 +1,4 @@
 from django.db import models
-from django.contrib.postgres.fields import ArrayField
 
 class Employee(models.Model):
     ROLES = [
@@ -52,10 +51,29 @@ class Enquiry(models.Model):
         ('SERVICES_NOT_AVAILABLE', 'Services Not Available'),
         ('RESOLVED', 'Resolved')
     ]
-    
+
+    SERVICES = [
+        ('PROJECT', 'Projects Preparation'),
+        ('MODELS', 'Models Preparation'),
+        ('ACADEMIC_WRITING', 'Academic Writing (Thesis, Dissertation, SOP, etc.)'),
+        ('MS_OFFICE', 'MS Office (PPT, Word, Excel)'),
+        ('DIY', 'DIY Crafts'),
+        ('PAINTING', 'Posters/Painting'),
+        ('GRAPHIC', 'Graphic Design'),
+        ('PROGRAMMING', 'Programming (Java, Phython, etc.)'),
+        ('GRAFFITI', 'Wall Painting / Graffiti'),
+        ('HOMEWORK', 'Holidays Homework'),
+        ('OTHERS', 'Others')
+    ]
+
     name = models.CharField(max_length=255, blank=False, null=False)
-    description = models.TextField(blank=False, null=False)
-    status = models.CharField(choices=STATUS_CHOICES, default=0)
+    deadline = models.BigIntegerField(blank=False, null=False),
+    service = models.CharField(max_length=255, blank=False, null=False),
+    description = models.TextField(blank=False, null=False),
+    contact_number = models.CharField(max_length=255, blank=False, null=False),
+    delivery_area = models.CharField(max_length=255, blank=False, null =False),
+    reference = models.TextField(blank=True),
+    status = models.CharField(choices=STATUS_CHOICES, default='NEW_INQUIRY'),
     coordinator = models.CharField(max_length=255, blank=True, null=True)
     assigned_fr = models.CharField(max_length=255, blank=True, null=True), 
     accepted_fr = models.CharField(max_length=255, blank=True, null=True), 
