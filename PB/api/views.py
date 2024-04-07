@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from .models import Employee, Enquiry
 from .serializers import EmployeeSerializer, EnquirySerializer
+from .models import Dictionary
 
 class LoginView(APIView):
     def post(self, request):
@@ -50,7 +51,7 @@ class EmployeeCreateView(APIView):
 class EmployeeRemoveView(APIView):
     def delete(self, request):
         try:
-            employee_id = request.GET.get('employee', None)
+            employee_id = request.GET.get('employee_id', None)
             if employee_id:
                 target = Employee.objects.get(employee_id=employee_id)
                 target.delete()
@@ -62,14 +63,12 @@ class EmployeeRemoveView(APIView):
         
 class PrintEmployeeDetailsView(APIView):
     def get(self, request):
-        arg = request.GET.get('arg', None)
+        arg = request.GET.get('role_or_employee_id', None)
         response_data = []
-
-        roles = ('Admin', 'Coordinator', 'Freelancer', 'Accounting')
 
         if arg is None:
             employee = Employee.objects.all()
-        elif arg in roles:
+        elif arg in [choice[0] for choice in Dictionary.ROLES]:
             employee = Employee.objects.filter(role=arg)
         else:
             try:
@@ -106,37 +105,10 @@ class EnquiryCreateView(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-STATUS_CHOICES = [
-        ('NEW_INQUIRY', 'Not assigned to any coordinator'),
-        ('COORDINATOR_REQUESTED', 'Assigned to a PC but not accepted'),
-        ('FREELANCERS_REQUESTED', 'Assigned to a FR but not accepted by at least one fr'),
-        ('FREELANCERS_ACCEPTED', 'Assigned to a FR and accepted by at least one fr'),
-        ('FREELANCER_FINALIZED', 'Finalized with an fr'),
-        ('INQUIRY_RESOLVED', 'Resolved - Check resolve status')
-    ]
-
-RESOLVE_TAGS = [
-        ('TIME_ISSUES', 'Time Issues'),
-        ('DISTANCE_ISSUES', 'Distance Issues'),
-        ('PAYMENT_PENDING', 'Payment Pending'),
-        ('ORDER_COMPLETE', 'Order Complete'),
-        ('NO_RESPONSE', 'No Response'),
-        ('SERVICES_NOT_AVAILABLE', 'Services Not Available'),
-        ('RESOLVED', 'Resolved')
-    ]
-
 class PrintEnquiryDetailsView(APIView):
     def get(self, request):
-        employee_id = request.GET.get('arg1', None)
-        status_val = request.GET.get('arg2', None)
-
-        if status_val is not None:
-            try:
-                status_val = int(status_val)
-                if status_val < 0 or status_val > 4:
-                    return Response({'status': 'error', 'message': 'Invalid status'}, status=status.HTTP_400_BAD_REQUEST)
-            except ValueError:
-                return Response({'status': 'error', 'message': 'Invalid status'}, status=status.HTTP_400_BAD_REQUEST)
+        employee_id = request.GET.get('employee_id', None)
+        status_val = request.GET.get('status', None)
 
         if not employee_id:
             return Response({'status': 'error', 'message': 'EmployeeID is required'}, status=status.HTTP_404_NOT_FOUND)
@@ -145,6 +117,13 @@ class PrintEnquiryDetailsView(APIView):
             employee = Employee.objects.get(employee_id=employee_id)
         except Employee.DoesNotExist:
             return Response({'status': 'error', 'message': 'Employee not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        if status_val is not None:
+            try:
+                if status_val not in [choice[0] for choice in Dictionary.STATUS_CHOICES]:
+                    return Response({'status': 'error', 'message': 'Invalid status'}, status=status.HTTP_400_BAD_REQUEST)
+            except ValueError:
+                return Response({'status': 'error', 'message': 'Invalid status'}, status=status.HTTP_400_BAD_REQUEST)
 
         role_mapping = {
             'AM': 'Admin',
@@ -167,56 +146,64 @@ class PrintEnquiryDetailsView(APIView):
             else:
                 enquiries = Enquiry.objects.filter(coordinator=employee)
         elif role == 'Freelancer':
-            if status:
+            if status_val:
                 enquiries = Enquiry.objects.filter(freelancer=employee, status=status_val)
             else:
                 enquiries = Enquiry.objects.filter(freelancer=employee)
+            return Response(list(enquiries.values('name', 'deadline', 'service', 'description', 'reference', 'status', 'coordinator', 'assigned_fr', 'accepted_fr', 'final_fr', 'resolve_status', 'wp_link')), status=status.HTTP_200_OK)
         else:
             return Response({'status': 'error', 'message': 'Invalid role'}, status=status.HTTP_404_NOT_FOUND)
 
         return Response(list(enquiries.values()), status=status.HTTP_200_OK)
 
 class UpdateEnquiryStatusView(APIView):
-    def post(self, request):
-        enquiry_id = request.data.get('enquiry_id', None)
-        target_status = request.data.get('target_status', None)
-        
-        if not enquiry_id or not target_status:
-            return Response({'status': 'error', 'message': 'Enquiry ID and target status are required'}, status=status.HTTP_400_BAD_REQUEST)
-        
+    def post(self, request, *args, **kwargs):
+        enquiry_id = request.data.get('enquiry_id')
+        action = request.data.get('action')
         employee_id = request.data.get('employee_id')
-        if not employee_id:
-            return Response({'status': 'error', 'message': 'Employee ID is required'}, status=status.HTTP_400_BAD_REQUEST)
-        
+
         try:
             enquiry = Enquiry.objects.get(id=enquiry_id)
         except Enquiry.DoesNotExist:
-            return Response({'status': 'error', 'message': 'Enquiry not found'}, status=status.HTTP_404_NOT_FOUND)
-        
+            return Response({"error": "Enquiry not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        if action not in [choice[0] for choice in Dictionary.ACTIONS]:
+            return Response({"error": "Invalid action"}, status=status.HTTP_400_BAD_REQUEST)
+
         try:
             employee = Employee.objects.get(employee_id=employee_id)
         except Employee.DoesNotExist:
-            return Response({'status': 'error', 'message': 'Employee not found'}, status=status.HTTP_404_NOT_FOUND)
-        
-        if enquiry.status == 0 and target_status == 1:
+            return Response({"error": "Employee not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        if action in ['COORDINATOR_REQUESTED', 'COORDINATORS_ACCEPTED', 'COORDINATOR_REJECTED', 'COORDINATOR_TIME_UP']:
             if employee.role != 'Coordinator':
-                return Response({'status': 'error', 'message': 'Employee is not a Project Coordinator'}, status=status.HTTP_400_BAD_REQUEST)
-            enquiry.coordinator = employee_id
-            enquiry.status = 1
-        elif enquiry.status == 1 and target_status == 0:
-            enquiry.coordinator = None
-            enquiry.status = 0
-        elif enquiry.status == 1 and target_status == 2:
+                return Response({"error": "Employee is not a coordinator"}, status=status.HTTP_400_BAD_REQUEST)
+        elif action in ['FREELANCERS_REQUESTED', 'FREELANCERS_ACCEPTED', 'FREELANCERS_REJECTED', 'FREELANCERS_TIME_UP', 'FREELANCERS_FINALIZED']:
             if employee.role != 'Freelancer':
-                return Response({'status': 'error', 'message': 'Employee is not a Freelancer'}, status=status.HTTP_400_BAD_REQUEST)
-            enquiry.freelancer = employee_id
-            enquiry.status = 2
-        elif enquiry.status == 1 and target_status == 3:
-            enquiry.status = 3
-        elif enquiry.status == 3 and target_status == 4:
-            enquiry.status = 4
-        else:
-            return Response({'status': 'error', 'message': 'Invalid status transition'}, status=status.HTTP_400_BAD_REQUEST)
-        
+                return Response({"error": "Employee is not a freelancer"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if action == 'COORDINATOR_REQUESTED':
+            enquiry.assigned_coordinator = f"{enquiry.assigned_coordinator} {employee_id}" if enquiry.assigned_coordinator else employee_id
+            enquiry.status = 'COORDINATOR_REQUESTED'
+        elif action == 'COORDINATORS_ACCEPTED':
+            enquiry.accepted_coordinator = f"{enquiry.accepted_coordinator} {employee_id}" if enquiry.accepted_coordinator else employee_id
+            enquiry.status = 'COORDINATORS_FINALIZED'
+        elif action == 'COORDINATOR_REJECTED' or action == 'COORDINATOR_TIME_UP':
+            if not enquiry.assigned_coordinator or not enquiry.accepted_coordinator:
+                enquiry.status = 'NEW_INQUIRY'
+        elif action == 'FREELANCERS_REQUESTED':
+            enquiry.assigned_fr = f"{enquiry.assigned_fr} {employee_id}" if enquiry.assigned_fr else employee_id
+            enquiry.status = 'FREELANCERS_REQUESTED'
+        elif action == 'FREELANCERS_ACCEPTED':
+            enquiry.accepted_fr = f"{enquiry.accepted_fr} {employee_id}" if enquiry.accepted_fr else employee_id
+            enquiry.status = 'FREELANCERS_ACCEPTED'
+        elif action == 'FREELANCERS_REJECTED' or action == 'FREELANCERS_TIME_UP':
+            if not enquiry.assigned_fr or not enquiry.accepted_fr:
+                enquiry.status = 'COORDINATORS_FINALIZED'
+        elif action == 'FREELANCERS_FINALIZED':
+            enquiry.final_fr = f"{enquiry.final_fr} {employee_id}" if enquiry.final_fr else employee_id
+            enquiry.status = 'FREELANCERS_FINALIZED'
+
         enquiry.save()
-        return Response({'status': 'success'}, status=status.HTTP_200_OK)
+        return Response({"message": "Enquiry status updated successfully"}, status=status.HTTP_200_OK)
+
