@@ -11,13 +11,13 @@ class Dictionary():
     ]
       
       STATUS_CHOICES = [
-        ('NEW_INQUIRY', 'Not assigned to any coordinator'),
+        ('NEW_ENQUIRY', 'Not assigned to any coordinator'),
         ('COORDINATORS_REQUESTED', 'Assigned to a coordinator but not accepted'),
         ('COORDINATORS_FINALIZED', 'Assigned to a PC but not accepted'),
         ('FREELANCERS_REQUESTED', 'Assigned to a FR but not accepted by at least one fr'),
         ('FREELANCERS_ACCEPTED', 'Assigned to a FR and accepted by at least one fr'),
         ('FREELANCER_FINALIZED', 'Finalized with an fr'),
-        ('INQUIRY_RESOLVED', 'Resolved - Check resolve status')
+        ('ENQUIRY_RESOLVED', 'Resolved - Check resolve status')
     ]
       
       RESOLVE_TAGS = [
@@ -87,7 +87,7 @@ class Enquiry(models.Model):
     contact_number = models.CharField(max_length=255, blank=False, null=False),
     delivery_area = models.CharField(max_length=255, blank=False, null =False),
     reference = models.TextField(blank=True),
-    status = models.CharField(choices=Dictionary.STATUS_CHOICES, default='NEW_INQUIRY'),
+    status = models.CharField(choices=Dictionary.STATUS_CHOICES, default='NEW_ENQUIRY'),
     assigned_coordinator = models.CharField(max_length=255, blank=True, null=True),
     accepted_coordinator = models.CharField(max_length=255, blank=True, null=True)
     assigned_fr = models.CharField(max_length=255, blank=True, null=True), 

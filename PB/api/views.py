@@ -119,10 +119,7 @@ class PrintEnquiryDetailsView(APIView):
             return Response({'status': 'error', 'message': 'Employee not found'}, status=status.HTTP_404_NOT_FOUND)
 
         if status_val is not None:
-            try:
-                if status_val not in [choice[0] for choice in Dictionary.STATUS_CHOICES]:
-                    return Response({'status': 'error', 'message': 'Invalid status'}, status=status.HTTP_400_BAD_REQUEST)
-            except ValueError:
+            if status_val not in [choice[0] for choice in Dictionary.STATUS_CHOICES]:
                 return Response({'status': 'error', 'message': 'Invalid status'}, status=status.HTTP_400_BAD_REQUEST)
 
         role_mapping = {
@@ -142,19 +139,21 @@ class PrintEnquiryDetailsView(APIView):
                 enquiries = Enquiry.objects.all()
         elif role == 'Coordinator':
             if status_val:
-                enquiries = Enquiry.objects.filter(coordinator=employee, status=status_val)
+                enquiries = Enquiry.objects.filter(assigned_coordinator__contains=employee_id, status=status_val)
             else:
-                enquiries = Enquiry.objects.filter(coordinator=employee)
+                enquiries = Enquiry.objects.filter(assigned_coordinator__contains=employee_id)
         elif role == 'Freelancer':
             if status_val:
-                enquiries = Enquiry.objects.filter(freelancer=employee, status=status_val)
+                enquiries = Enquiry.objects.filter(assigned_fr__contains=employee_id, status=status_val)
             else:
-                enquiries = Enquiry.objects.filter(freelancer=employee)
-            return Response(list(enquiries.values('name', 'deadline', 'service', 'description', 'reference', 'status', 'coordinator', 'assigned_fr', 'accepted_fr', 'final_fr', 'resolve_status', 'wp_link')), status=status.HTTP_200_OK)
-        else:
-            return Response({'status': 'error', 'message': 'Invalid role'}, status=status.HTTP_404_NOT_FOUND)
+                enquiries = Enquiry.objects.filter(assigned_fr__contains=employee_id)
 
-        return Response(list(enquiries.values()), status=status.HTTP_200_OK)
+        if role == 'Freelancer':
+            return Response(list(enquiries.values('name', 'deadline', 'service', 'description', 'reference', 'accepted_coordinator', 'wp_link')), status=status.HTTP_200_OK)
+        elif role == 'Coordinator':
+            return Response(list(enquiries.values('name', 'deadline', 'service', 'description', 'contact_number', 'reference', 'status', 'assigned_fr', 'accepted_fr', 'wp_link')), status=status.HTTP_200_OK)
+        else:
+            return Response(list(enquiries.values()), status=status.HTTP_200_OK)
 
 class UpdateEnquiryStatusView(APIView):
     def post(self, request, *args, **kwargs):
@@ -190,7 +189,7 @@ class UpdateEnquiryStatusView(APIView):
             enquiry.status = 'COORDINATORS_FINALIZED'
         elif action == 'COORDINATOR_REJECTED' or action == 'COORDINATOR_TIME_UP':
             if not enquiry.assigned_coordinator or not enquiry.accepted_coordinator:
-                enquiry.status = 'NEW_INQUIRY'
+                enquiry.status = 'NEW_ENQUIRY'
         elif action == 'FREELANCERS_REQUESTED':
             enquiry.assigned_fr = f"{enquiry.assigned_fr} {employee_id}" if enquiry.assigned_fr else employee_id
             enquiry.status = 'FREELANCERS_REQUESTED'
@@ -207,3 +206,39 @@ class UpdateEnquiryStatusView(APIView):
         enquiry.save()
         return Response({"message": "Enquiry status updated successfully"}, status=status.HTTP_200_OK)
 
+class UpdateEnquiryWithWPLinkView(APIView):
+    def patch(self, request, enquiry_id):
+        wp_link = request.data.get('wp_link', None)
+        
+        if not wp_link:
+            return Response({'error': 'wp_link is required'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            enquiry = Enquiry.objects.get(id=enquiry_id)
+        except Enquiry.DoesNotExist:
+            return Response({'error': 'Enquiry not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        enquiry.wp_link = wp_link
+        enquiry.save()
+        return Response({'message': 'Enquiry updated successfully'}, status=status.HTTP_200_OK)
+
+class CloseEnquiryView(APIView):
+    def patch(self, request, enquiry_id):
+        enquiry_id = request.data.get('enquiry_id')
+        resolve_tag = request.data.get('resolve_tag')
+
+        if not resolve_tag:
+            return Response({'error': 'resolve_tag is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            enquiry = Enquiry.objects.get(id=enquiry_id)
+        except Enquiry.DoesNotExist:
+            return Response({'error': 'Enquiry not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Check if the provided resolve_tag is valid
+        if resolve_tag not in [choice[0] for choice in Dictionary.RESOLVE_TAGS]:
+            return Response({'error': 'Invalid resolve tag'}, status=status.HTTP_400_BAD_REQUEST)
+
+        enquiry.status = 'ENQUIRY_RESOLVED'
+        enquiry.resolve_status = resolve_tag
+        enquiry.save()
+        return Response({'message': 'Enquiry closed successfully'}, status=status.HTTP_200_OK)
