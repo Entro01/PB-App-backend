@@ -12,7 +12,8 @@ class Dictionary():
       
       STATUS_CHOICES = [
         ('NEW_INQUIRY', 'Not assigned to any coordinator'),
-        ('COORDINATOR_REQUESTED', 'Assigned to a PC but not accepted'),
+        ('COORDINATORS_REQUESTED', 'Assigned to a coordinator but not accepted'),
+        ('COORDINATORS_FINALIZED', 'Assigned to a PC but not accepted'),
         ('FREELANCERS_REQUESTED', 'Assigned to a FR but not accepted by at least one fr'),
         ('FREELANCERS_ACCEPTED', 'Assigned to a FR and accepted by at least one fr'),
         ('FREELANCER_FINALIZED', 'Finalized with an fr'),
@@ -23,7 +24,7 @@ class Dictionary():
         ('TIME_ISSUES', 'Time Issues'),
         ('DISTANCE_ISSUES', 'Distance Issues'),
         ('PAYMENT_PENDING', 'Payment Pending'),
-        ('ORDER_COMPLETE', 'Order Complete'),
+        ('ORDER_PLACED', 'Order Complete'),
         ('NO_RESPONSE', 'No Response'),
         ('SERVICES_NOT_AVAILABLE', 'Services Not Available'),
         ('RESOLVED', 'Resolved')
@@ -42,6 +43,18 @@ class Dictionary():
         ('HOMEWORK', 'Holidays Homework'),
         ('OTHERS', 'Others')
     ]
+      
+      ACTIONS = [
+        ('COORDINATOR_REQUESTED', 'Request sent to a coordinator'),
+        ('COORDINATORS_ACCEPTED', 'Request accepted by a coordinator'),
+        ('COORDINATOR_REJECTED', 'Request declined by a coordinator'),
+        ('COORDINATOR_TIME_UP', 'Request not accepted in time by a coordinator'),
+        ('FREELANCERS_REQUESTED', 'Request sent to a freelancer'),
+        ('FREELANCERS_ACCEPTED', 'Request accepted by a freelancer'),
+        ('FREELANCERS_REJECTED', 'Request declined by a freelancer'),
+        ('FREELANCERS_TIME_UP', 'Request not accepted in time by a freelancer'),
+        ('FREELANCERS_FINALIZED', 'A freelancer is finalized to work on the project'),
+    ]      
 
 
 class Employee(models.Model):
@@ -66,7 +79,7 @@ class Employee(models.Model):
         super(Employee, self).save(*args, **kwargs)
 
 class Enquiry(models.Model):
-    
+
     name = models.CharField(max_length=255, blank=False, null=False)
     deadline = models.BigIntegerField(blank=False, null=False),
     service = models.CharField(max_length=255, blank=False, null=False),
@@ -75,7 +88,8 @@ class Enquiry(models.Model):
     delivery_area = models.CharField(max_length=255, blank=False, null =False),
     reference = models.TextField(blank=True),
     status = models.CharField(choices=Dictionary.STATUS_CHOICES, default='NEW_INQUIRY'),
-    coordinator = models.CharField(max_length=255, blank=True, null=True)
+    assigned_coordinator = models.CharField(max_length=255, blank=True, null=True),
+    accepted_coordinator = models.CharField(max_length=255, blank=True, null=True)
     assigned_fr = models.CharField(max_length=255, blank=True, null=True), 
     accepted_fr = models.CharField(max_length=255, blank=True, null=True), 
     final_fr = models.CharField(max_length=255, blank=True, null=True)
