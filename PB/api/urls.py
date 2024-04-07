@@ -1,6 +1,6 @@
 # employees/urls.py
 from django.urls import path
-from .views import LoginView, EmployeeStatusView, EmployeeStatusUpdateView, EmployeeCreateView, EmployeeRemoveView, EmployeeSpreadsheetView, PrintEmployeeDetailsView, EnquiryCreateView, PrintEnquiryDetailsView, UpdateEnquiryStatusView, UpdateEnquiryWithWPLinkView, CloseEnquiryView
+from .views import LoginView, EmployeeStatusView, EmployeeStatusUpdateView, EmployeeCreateView, EmployeeRemoveView, EmployeeSpreadsheetView, PrintEmployeeDetailsView, EnquiryCreateView, PrintEnquiryDetailsView, UpdateEnquiryStatusView, CheckTimeView, UpdateEnquiryWithWPLinkView, CloseEnquiryView
 
 urlpatterns = [
     path('login/', LoginView.as_view(), name='login'),
@@ -13,6 +13,7 @@ urlpatterns = [
     path('enquiry-create/', EnquiryCreateView.as_view(), name='enquiry_create'),
     path('print-enquiry-details/', PrintEnquiryDetailsView.as_view(), name='print_enquiry_details'),
     path('update-enquiry-status/', UpdateEnquiryStatusView.as_view(), name='update_enquiry_status'),
-    path('update-enquiry-wp-link/<int:enquiry_id>/', UpdateEnquiryWithWPLinkView.as_view(), name='update-enquiry-wp-link'),
-    path('close-enquiry/<int:enquiry_id>/', CloseEnquiryView.as_view(), name='close-enquiry'),
+    path('check-time/', CheckTimeView.as_view(), name='check_time'),
+    path('update-enquiry-wp-link/', UpdateEnquiryWithWPLinkView.as_view(), name='update-enquiry-wp-link'),
+    path('close-enquiry/', CloseEnquiryView.as_view(), name='close-enquiry'),
 ]

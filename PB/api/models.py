@@ -13,7 +13,7 @@ class Dictionary():
       STATUS_CHOICES = [
         ('NEW_ENQUIRY', 'Not assigned to any coordinator'),
         ('COORDINATORS_REQUESTED', 'Assigned to a coordinator but not accepted'),
-        ('COORDINATORS_FINALIZED', 'Assigned to a PC but not accepted'),
+        ('COORDINATOR_FINALIZED', 'Assigned to a PC but not accepted'),
         ('FREELANCERS_REQUESTED', 'Assigned to a FR but not accepted by at least one fr'),
         ('FREELANCERS_ACCEPTED', 'Assigned to a FR and accepted by at least one fr'),
         ('FREELANCER_FINALIZED', 'Finalized with an fr'),
@@ -88,9 +88,13 @@ class Enquiry(models.Model):
     delivery_area = models.CharField(max_length=255, blank=False, null =False),
     reference = models.TextField(blank=True),
     status = models.CharField(max_length=255, choices=Dictionary.STATUS_CHOICES, default='NEW_ENQUIRY'),
-    assigned_coordinator = models.CharField(max_length=255, blank=True, null=True),
+    assigned_coordinators = models.CharField(max_length=255, blank=True, null=True),
+    coordinator_timer = models.BigIntegerField(blank=True, null=True),
+    coordinator_alloted_time = models.BigIntegerField(blank=True, null=True),
     accepted_coordinator = models.CharField(max_length=255, blank=True, null=True)
-    assigned_fr = models.CharField(max_length=255, blank=True, null=True), 
+    assigned_fr = models.CharField(max_length=255, blank=True, null=True),
+    freelancer_timer = models.BigIntegerField(blank=True, null=True),
+    freelancer_alloted_time = models.BigIntegerField(blank=True, null=True),
     accepted_fr = models.CharField(max_length=255, blank=True, null=True), 
     final_fr = models.CharField(max_length=255, blank=True, null=True)
     resolve_status = models.CharField(max_length=255, choices=Dictionary.RESOLVE_TAGS, null=True)

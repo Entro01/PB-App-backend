@@ -156,10 +156,12 @@ class PrintEnquiryDetailsView(APIView):
             return Response(list(enquiries.values()), status=status.HTTP_200_OK)
 
 class UpdateEnquiryStatusView(APIView):
-    def post(self, request, *args, **kwargs):
+    def post(self, request):
         enquiry_id = request.data.get('enquiry_id')
         action = request.data.get('action')
         employee_id = request.data.get('employee_id')
+        time = request.data.get('time')
+        alloted_time = request.data.get('alloted time')
 
         try:
             enquiry = Enquiry.objects.get(id=enquiry_id)
@@ -180,19 +182,26 @@ class UpdateEnquiryStatusView(APIView):
         elif action in ['FREELANCERS_REQUESTED', 'FREELANCERS_ACCEPTED', 'FREELANCERS_REJECTED', 'FREELANCERS_TIME_UP', 'FREELANCERS_FINALIZED']:
             if employee.role != 'Freelancer':
                 return Response({"error": "Employee is not a freelancer"}, status=status.HTTP_400_BAD_REQUEST)
-
-        if action == 'COORDINATOR_REQUESTED':
+        
+        if action == 'COORDINATORS_REQUESTED':
+            if time or alloted_time is None:
+                return Response({"error": "Either Current Time or Alloted Time not found"}, status=status.HTTP_400_BAD_REQUEST)
             enquiry.assigned_coordinator = f"{enquiry.assigned_coordinator} {employee_id}" if enquiry.assigned_coordinator else employee_id
             enquiry.status = 'COORDINATOR_REQUESTED'
+            enquiry.coordinator_timer = time
+            enquiry.coordinator_alloted_time = alloted_time
         elif action == 'COORDINATORS_ACCEPTED':
-            enquiry.accepted_coordinator = f"{enquiry.accepted_coordinator} {employee_id}" if enquiry.accepted_coordinator else employee_id
-            enquiry.status = 'COORDINATORS_FINALIZED'
+            enquiry.accepted_coordinator = employee_id
+            enquiry.status = 'COORDINATOR_FINALIZED'
         elif action == 'COORDINATOR_REJECTED' or action == 'COORDINATOR_TIME_UP':
-            if not enquiry.assigned_coordinator or not enquiry.accepted_coordinator:
                 enquiry.status = 'NEW_ENQUIRY'
         elif action == 'FREELANCERS_REQUESTED':
+            if time or alloted_time is None:
+                return Response({"error": "Either Current Time or Alloted Time not found"}, status=status.HTTP_400_BAD_REQUEST)
             enquiry.assigned_fr = f"{enquiry.assigned_fr} {employee_id}" if enquiry.assigned_fr else employee_id
             enquiry.status = 'FREELANCERS_REQUESTED'
+            enquiry.freelancer_timer = time
+            enquiry.freelancer_alloted_time = alloted_time
         elif action == 'FREELANCERS_ACCEPTED':
             enquiry.accepted_fr = f"{enquiry.accepted_fr} {employee_id}" if enquiry.accepted_fr else employee_id
             enquiry.status = 'FREELANCERS_ACCEPTED'
@@ -206,8 +215,31 @@ class UpdateEnquiryStatusView(APIView):
         enquiry.save()
         return Response({"message": "Enquiry status updated successfully"}, status=status.HTTP_200_OK)
 
+class CheckTimeView(APIView):
+    def get(self, request):
+        enquiry_id = request.data.get('enquiry_id', None)
+        role = request.data.get('role', None)
+
+        if not enquiry_id:
+            return Response({'error': 'enquiry_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            enquiry = Enquiry.objects.get(id=enquiry_id)
+            if role == 'Coordinator':
+                time = enquiry.coordinator_timer
+                alloted_time = enquiry.coordinator_alloted_time
+            elif role == 'Freelancer':
+                time = enquiry.freelancer_timer
+                alloted_time = enquiry.freelancer_alloted_time
+            else:
+                return Response({'error:' 'Wrong role'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'time': time, 'alloted_time': alloted_time}, status=status.HTTP_200_OK)
+        except Enquiry.DoesNotExist:
+            return Response({'error': 'Enquiry not found'}, status=status.HTTP_404_NOT_FOUND)
+
 class UpdateEnquiryWithWPLinkView(APIView):
-    def patch(self, request, enquiry_id):
+    def post(self, request):
+        enquiry_id = request.data.get('enquiry_id', None)
         wp_link = request.data.get('wp_link', None)
         
         if not wp_link:
@@ -222,19 +254,21 @@ class UpdateEnquiryWithWPLinkView(APIView):
         return Response({'message': 'Enquiry updated successfully'}, status=status.HTTP_200_OK)
 
 class CloseEnquiryView(APIView):
-    def patch(self, request, enquiry_id):
+    def post(self, request):
         enquiry_id = request.data.get('enquiry_id')
         resolve_tag = request.data.get('resolve_tag')
-
-        if not resolve_tag:
-            return Response({'error': 'resolve_tag is required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if not enquiry_id:
+            return Response({'error': 'enquiry_id is required'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             enquiry = Enquiry.objects.get(id=enquiry_id)
         except Enquiry.DoesNotExist:
             return Response({'error': 'Enquiry not found'}, status=status.HTTP_404_NOT_FOUND)
-
-        # Check if the provided resolve_tag is valid
+        
+        if not resolve_tag:
+            return Response({'error': 'resolve_tag is required'}, status=status.HTTP_400_BAD_REQUEST)
+        
         if resolve_tag not in [choice[0] for choice in Dictionary.RESOLVE_TAGS]:
             return Response({'error': 'Invalid resolve tag'}, status=status.HTTP_400_BAD_REQUEST)
 
