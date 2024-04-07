@@ -87,13 +87,13 @@ class Enquiry(models.Model):
     contact_number = models.CharField(max_length=255, blank=False, null=False),
     delivery_area = models.CharField(max_length=255, blank=False, null =False),
     reference = models.TextField(blank=True),
-    status = models.CharField(choices=Dictionary.STATUS_CHOICES, default='NEW_ENQUIRY'),
+    status = models.CharField(max_length=255, choices=Dictionary.STATUS_CHOICES, default='NEW_ENQUIRY'),
     assigned_coordinator = models.CharField(max_length=255, blank=True, null=True),
     accepted_coordinator = models.CharField(max_length=255, blank=True, null=True)
     assigned_fr = models.CharField(max_length=255, blank=True, null=True), 
     accepted_fr = models.CharField(max_length=255, blank=True, null=True), 
     final_fr = models.CharField(max_length=255, blank=True, null=True)
-    resolve_status = models.CharField(choices=Dictionary.RESOLVE_TAGS)
+    resolve_status = models.CharField(max_length=255, choices=Dictionary.RESOLVE_TAGS, null=True)
     wp_link = models.URLField(blank=True, null=True)
 
     def __str__(self):
