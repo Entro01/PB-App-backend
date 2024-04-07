@@ -72,8 +72,12 @@ class Employee(models.Model):
         if not self.pk:
             role_code = self.employee_id.split('-')[1] if '-' in self.employee_id else None
             if role_code:
-                self.role = Dictionary.ROLES.get(role_code, 'Accounting')
-        
+                role_mapping = {
+                    'AM': 'Admin',
+                    'PC': 'Coordinator',
+                    'FR': 'Freelancer',
+                }
+                self.role = role_mapping.get(role_code, 'Accounting')
         self.password = self.contact_number
         
         super(Employee, self).save(*args, **kwargs)
@@ -82,7 +86,7 @@ class Enquiry(models.Model):
 
     name = models.CharField(max_length=255, blank=False, null=False)
     deadline = models.BigIntegerField(blank=False, null=False),
-    service = models.CharField(max_length=255, blank=False, null=False),
+    service = models.CharField(max_length=255, choices=Dictionary.SERVICES, blank=False, null=False),
     description = models.TextField(blank=False, null=False),
     contact_number = models.CharField(max_length=255, blank=False, null=False),
     delivery_area = models.CharField(max_length=255, blank=False, null =False),
